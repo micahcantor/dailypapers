@@ -1,0 +1,9 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [],
+	"rootPath": "github.com/me/server",
+	"heroku": {
+        "install" : [ "./..." ]
+    }
+}
