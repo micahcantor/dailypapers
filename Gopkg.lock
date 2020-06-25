@@ -25,6 +25,12 @@
   revision = "c2b33e84"
 
 [[projects]]
+  name = "github.com/lib/pq"
+  packages = [".","oid","scram"]
+  revision = "8ae9eeaa02388a26cd5586023a0c4166c021a83d"
+  version = "v1.7.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/nfnt/resize"
   packages = ["."]
@@ -45,6 +51,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a0c1398eb63ff624483a146a547404eb872a44149ca4d8ce629e72f6e13e6f57"
+  inputs-digest = "836119e4aabb911c5c203be95b368f635c602d293f41086e86bdf037044d74c0"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,19 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"errors"
 	"bytes"
+	"database/sql"
 	"encoding/json"
-	"strings"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"github.com/esimov/caire"
+	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/esimov/caire"
+	_ "github.com/lib/pq"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
 )
 
 // cd server && go run server.go
@@ -28,11 +32,11 @@ type Posts struct {
 
 type PostDetails struct {
 	Data struct {
-		Title string
-		Author string
+		Title     string
+		Author    string
 		Permalink string
-		Url string
-		Preview struct {
+		Url       string
+		Preview   struct {
 			Images []ImageDetails
 		}
 	}
@@ -40,43 +44,90 @@ type PostDetails struct {
 
 type ImageDetails struct {
 	Source struct {
-		Width int
+		Width  int
 		Height int
 	}
 }
 
+var db *sql.DB
+
 func main() {
 	subData := GetSubData() // stores all of the data for r/EarthPorn/top
-	imgData, details, searchErr := FindBestImage(subData)
-	if searchErr != nil {	// don't update the image today if there were no suitable posts
+	_, details, searchErr := FindBestImage(subData)
+	if searchErr != nil { // don't update the image today if there were no suitable posts
 		return
 	}
-	imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
+
+	url, ok := os.LookupEnv("DATABASE_URL")
+	if !ok {
+		log.Fatalln("$DATABASE_URL is required")
+	}
+
+	db, setupErr := dbSetup(url)
+	check(setupErr)
+	details.saveDetails(db)
+	retrieveDetails(db)
+
+	/* imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
 	resizedBuffer := new(bytes.Buffer)
 
 	resize(imgReader, resizedBuffer) // resizes image, stores it in resized buffer
-	S3Upload(resizedBuffer)   // uploads to s3
+	S3Upload(resizedBuffer)          // uploads to s3
 
 	port := getPort()
-	http.HandleFunc("/details", details.HandleDetails)
-	http.ListenAndServe(port, nil)
+	http.HandleFunc("/details", details.handleDetails)
+	http.ListenAndServe(port, nil) */
 }
 
-func daily() {
-	
+func retrieveDetails(db *sql.DB) {
+	rows, selectErr := db.Query("SELECT author, permalink FROM details ORDER BY id")
+	check(selectErr)
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			author 		string
+			permalink 	string
+		)
+		scanErr := rows.Scan(&author, &permalink)
+		check(scanErr)
+		log.Printf("author %s link is %s\n", author, permalink)
+	}
 }
 
-func saveDetails(pd *PostDetails) {
-	
+func (pd *PostDetails) saveDetails(db *sql.DB) *sql.DB {
+	insert := `INSERT INTO details(author, permalink) VALUES($1, $2)`
+	_, insertErr := db.Exec(insert, pd.Data.Author, pd.Data.Permalink)
+	check(insertErr)
+
+	return db
 }
 
-func (pd *PostDetails) HandleDetails(w http.ResponseWriter, req *http.Request) {
+func dbSetup(dbURL string) (*sql.DB, error) {
+	db, openErr := sql.Open("postgres", dbURL)
+	check(openErr)
+
+	pingErr := db.Ping()
+	check(pingErr)
+
+	_, createErr := db.Exec(`
+	CREATE TABLE IF NOT EXISTS details (
+		author 		text
+		permalink 	text
+		id			serial
+	)`)
+	check(createErr)
+
+	return db, nil
+}
+
+func (pd *PostDetails) handleDetails(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(w, "invalid_http_method")
 		return
 	}
-	
+
 	json, encodeErr := json.Marshal(pd.Data)
 	check(encodeErr)
 	w.Header().Set("Content-Type", "application/json")
@@ -93,22 +144,22 @@ func S3Upload(data *bytes.Buffer) {
 	uploader := s3manager.NewUploader(sess)
 	// Upload the file to S3.
 	result, uploadErr := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String("reddit-chrome-wallpapers"),
-		Key:    aws.String("daily-image.jpg"),
-		ACL: 	aws.String("public-read"),
+		Bucket:      aws.String("reddit-chrome-wallpapers"),
+		Key:         aws.String("daily-image.jpg"),
+		ACL:         aws.String("public-read"),
 		ContentType: aws.String("image/jpeg"),
-		Body:   data,
+		Body:        data,
 	})
 	check(uploadErr)
 
-	fmt.Printf("file uploaded to S3", result)	
+	fmt.Printf("file uploaded to S3", result)
 }
 
 func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 	var posts Posts
 	err := json.Unmarshal(data, &posts)
 	check(err)
-	
+
 	for i, post := range posts.Data.Children {
 		fmt.Println(i)
 		isOC := strings.Contains(post.Data.Title, "[OC]") || strings.Contains(post.Data.Title, "(OC)")
@@ -120,7 +171,7 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
 			defer res.Body.Close()
-			
+
 			buf, readErr := ioutil.ReadAll(res.Body)
 			check(readErr)
 
@@ -131,14 +182,14 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 	return nil, nil, errors.New("no posts")
 }
 
-func GetSubData() ([]byte) {
+func GetSubData() []byte {
 	reqUrl, parseErr := url.Parse("https://old.reddit.com/r/EarthPorn/top/.json")
 	check(parseErr)
 
-	req := &http.Request { // set request params
+	req := &http.Request{ // set request params
 		Method: "GET",
-		URL: reqUrl,
-		Header: map[string][]string {
+		URL:    reqUrl,
+		Header: map[string][]string{
 			"User-agent": {"macOS:https://github.com/micahcantor/reddit-chrome-wallpapers:0.1.0 (by /u/HydroxideOH-)"},
 		},
 	}
@@ -154,7 +205,7 @@ func GetSubData() ([]byte) {
 
 func resize(in io.Reader, out io.Writer) {
 	p := &caire.Processor{
-		NewWidth: 1920,
+		NewWidth:  1920,
 		NewHeight: 1080,
 	}
 
@@ -163,15 +214,15 @@ func resize(in io.Reader, out io.Writer) {
 }
 
 func check(e error) {
-    if e != nil {
-        panic(e)
-    }
+	if e != nil {
+		panic(e)
+	}
 }
 
 func getPort() string {
 	p := os.Getenv("PORT")
 	if p != "" {
-	  return ":" + p
+		return ":" + p
 	}
 	return ":8080"
-  }
+}
