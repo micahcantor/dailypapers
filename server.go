@@ -60,7 +60,7 @@ func main() {
 
 	database = dbSetup()
 	details.saveDetails(database)
-	retrieveDetails(db)
+	retrieveDetails(database)
 	database.Close()
 
 	/* imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
