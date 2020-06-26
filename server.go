@@ -49,7 +49,7 @@ type ImageDetails struct {
 	}
 }
 
-var db *sql.DB
+var database *sql.DB
 
 func main() {
 	subData := GetSubData() // stores all of the data for r/EarthPorn/top
@@ -58,15 +58,10 @@ func main() {
 		return
 	}
 
-	url, ok := os.LookupEnv("DATABASE_URL")
-	if !ok {
-		log.Fatalln("$DATABASE_URL is required")
-	}
-
-	db, setupErr := dbSetup(url)
-	check(setupErr)
-	details.saveDetails(db)
+	database = dbSetup()
+	details.saveDetails(database)
 	retrieveDetails(db)
+	database.Close()
 
 	/* imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
 	resizedBuffer := new(bytes.Buffer)
@@ -85,10 +80,8 @@ func retrieveDetails(db *sql.DB) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var (
-			author 		string
-			permalink 	string
-		)
+		var author string
+		var permalink string
 		scanErr := rows.Scan(&author, &permalink)
 		check(scanErr)
 		log.Printf("author %s link is %s\n", author, permalink)
@@ -96,29 +89,21 @@ func retrieveDetails(db *sql.DB) {
 }
 
 func (pd *PostDetails) saveDetails(db *sql.DB) *sql.DB {
-	insert := `INSERT INTO details(author, permalink) VALUES($1, $2)`
+	insert := `INSERT INTO details (author, permalink) VALUES($1, $2)`
 	_, insertErr := db.Exec(insert, pd.Data.Author, pd.Data.Permalink)
 	check(insertErr)
 
 	return db
 }
 
-func dbSetup(dbURL string) (*sql.DB, error) {
-	db, openErr := sql.Open("postgres", dbURL)
+func dbSetup() (*sql.DB) {
+	db, openErr := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	check(openErr)
 
-	pingErr := db.Ping()
-	check(pingErr)
-
-	_, createErr := db.Exec(`
-	CREATE TABLE IF NOT EXISTS details (
-		author 		text
-		permalink 	text
-		id			serial
-	)`)
+	_, createErr := db.Exec(`CREATE TABLE IF NOT EXISTS details (id SERIAL, author TEXT, permalink TEXT)`)
 	check(createErr)
 
-	return db, nil
+	return db
 }
 
 func (pd *PostDetails) handleDetails(w http.ResponseWriter, req *http.Request) {
