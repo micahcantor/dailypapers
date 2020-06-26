@@ -1,1 +1,1 @@
-web: go build server.go && ./server
+web: rcw
