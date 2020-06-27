@@ -162,11 +162,11 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			if p.NewWidth > img.Bounds().Max.X || p.NewHeight > img.Bounds().Max.Y {
 				return nil, errors.New("scale option can not be used on image enlargement")
 			}
-			// Preserve the aspect ratio on horizontal or vertical axes.
+			// Preserve the aspect ratio on horizontal or vertical axes.	
 			if p.NewWidth > p.NewHeight {
 				newWidth = 0
 				newImg = resize.Resize(uint(p.NewWidth), 0, img, resize.Lanczos3)
-				if p.NewHeight < newImg.Bounds().Dy() {
+				if p.NewHeight <= newImg.Bounds().Dy() {
 					newHeight = newImg.Bounds().Dy() - p.NewHeight
 				} else {
 					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")
@@ -174,7 +174,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			} else {
 				newHeight = 0
 				newImg = resize.Resize(0, uint(p.NewHeight), img, resize.Lanczos3)
-				if p.NewWidth < newImg.Bounds().Dx() {
+				if p.NewWidth <= newImg.Bounds().Dx() {
 					newWidth = newImg.Bounds().Dx() - p.NewWidth
 				} else {
 					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")

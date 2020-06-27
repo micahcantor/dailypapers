@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime/debug"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -59,7 +60,6 @@ type ImageDetails struct {
 
 func main() {
 	daily()
-	fmt.Println(os.Getenv("MONGOLAB_ORANGE_URI"))
 	port := getPort()
 	sd := getData()
 	http.HandleFunc("/details", sd.handleDetails)
@@ -69,7 +69,7 @@ func main() {
 func daily() {
 	subData := GetSubData() // stores all of the data for r/EarthPorn/top
 	imgData, details, searchErr := FindBestImage(subData)
-	fmt.Println("Got image data", imgData)
+	fmt.Println("Got image data")
 	if searchErr != nil { // don't update the image today if there were no suitable posts
 		return
 	}
@@ -79,6 +79,7 @@ func daily() {
 	resizedBuffer := new(bytes.Buffer)
 
 	resize(imgReader, resizedBuffer) // resizes image, stores it in resized buffer
+	debug.FreeOSMemory()
 	fmt.Println("Resized image")
 	S3Upload(resizedBuffer)          // uploads to s3
 }
@@ -103,7 +104,7 @@ func insertData(details *PostDetails) {
 }
 
 func getCollection() *mgo.Collection {
-	session, err := mgo.Dial(os.Getenv("MONGOLAB_ORANGE_URI"))
+	session, err := mgo.Dial("mongodb://micah:afF2cU9PtvJ8yb@ds261479.mlab.com:61479/heroku_v9g0gb74")
 	check(err)
 	c := session.DB("heroku_v9g0gb74").C("details")
 	return c
@@ -155,7 +156,8 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 		height := post.Data.Preview.Images[0].Source.Height
 		asp_ratio := float64(width) / float64(height)
 
-		if isOC && asp_ratio > 1.32 { // find first OC post with acceptable aspect ratio
+		if isOC && asp_ratio > 1.6 { // find first OC post with acceptable aspect ratio
+			fmt.Println(asp_ratio)
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
 			defer res.Body.Close()
@@ -195,6 +197,7 @@ func resize(in io.Reader, out io.Writer) {
 	p := &caire.Processor{
 		NewWidth:  1920,
 		NewHeight: 1080,
+		Scale: true,
 	}
 
 	err := p.Process(in, out)
