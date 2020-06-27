@@ -85,7 +85,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		c.ComputeSeams(img, p)
 		seams := c.FindLowestEnergySeams()
 		img = c.RemoveSeam(img, seams, p.Debug)
-		imgs = append(imgs, img)
+		//imgs = append(imgs, img)
 	}
 	enlarge := func() {
 		width, height := img.Bounds().Max.X, img.Bounds().Max.Y
