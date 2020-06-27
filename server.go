@@ -2,18 +2,21 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/esimov/caire"
-	_ "github.com/lib/pq"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
+	
 	"io"
 	"io/ioutil"
-	"log"
+	//"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,6 +45,11 @@ type PostDetails struct {
 	}
 }
 
+type SendData struct {
+	Author 	  string
+	Permalink string
+}
+
 type ImageDetails struct {
 	Source struct {
 		Width  int
@@ -49,71 +57,66 @@ type ImageDetails struct {
 	}
 }
 
-var database *sql.DB
-
 func main() {
+	daily()
+	fmt.Println(os.Getenv("MONGOLAB_ORANGE_URI"))
+	port := getPort()
+	sd := getData()
+	http.HandleFunc("/details", sd.handleDetails)
+	http.ListenAndServe(port, nil) 
+}
+
+func daily() {
 	subData := GetSubData() // stores all of the data for r/EarthPorn/top
-	_, details, searchErr := FindBestImage(subData)
+	imgData, details, searchErr := FindBestImage(subData)
+	fmt.Println("Got image data", imgData)
 	if searchErr != nil { // don't update the image today if there were no suitable posts
 		return
 	}
-
-	database = dbSetup()
-	details.saveDetails(database)
-	retrieveDetails(database)
-	database.Close()
-
-	/* imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
+	
+	insertData(details)
+	imgReader := bytes.NewBuffer(imgData) // buffer reader that holds the pre-processed image
 	resizedBuffer := new(bytes.Buffer)
 
 	resize(imgReader, resizedBuffer) // resizes image, stores it in resized buffer
+	fmt.Println("Resized image")
 	S3Upload(resizedBuffer)          // uploads to s3
-
-	port := getPort()
-	http.HandleFunc("/details", details.handleDetails)
-	http.ListenAndServe(port, nil) */
 }
 
-func retrieveDetails(db *sql.DB) {
-	rows, selectErr := db.Query("SELECT author, permalink FROM details ORDER BY id")
-	check(selectErr)
-	defer rows.Close()
-
-	for rows.Next() {
-		var author string
-		var permalink string
-		scanErr := rows.Scan(&author, &permalink)
-		check(scanErr)
-		log.Printf("author %s link is %s\n", author, permalink)
-	}
+func getData() *SendData {
+	c := getCollection()
+	var m bson.M
+	dbSize, err := c.Count()
+	check(err)
+	err = c.Find(nil).Skip(dbSize - 1).One(&m)
+	check(err)
+	sd := SendData{Author: m["Author"].(string), Permalink: m["Link"].(string)}
+	fmt.Println("got data from mongo", sd)
+	return &sd
 }
 
-func (pd *PostDetails) saveDetails(db *sql.DB) *sql.DB {
-	insert := `INSERT INTO details (author, permalink) VALUES($1, $2)`
-	_, insertErr := db.Exec(insert, pd.Data.Author, pd.Data.Permalink)
-	check(insertErr)
-
-	return db
+func insertData(details *PostDetails) {
+	c := getCollection()
+	err := c.Insert(bson.M{"Author": details.Data.Author, "Link": details.Data.Permalink})
+	check(err)
+	fmt.Println("inserted table")
 }
 
-func dbSetup() (*sql.DB) {
-	db, openErr := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	check(openErr)
-
-	_, createErr := db.Exec(`CREATE TABLE IF NOT EXISTS details (id SERIAL, author TEXT, permalink TEXT)`)
-	check(createErr)
-
-	return db
+func getCollection() *mgo.Collection {
+	session, err := mgo.Dial(os.Getenv("MONGOLAB_ORANGE_URI"))
+	check(err)
+	c := session.DB("heroku_v9g0gb74").C("details")
+	return c
 }
 
-func (pd *PostDetails) handleDetails(w http.ResponseWriter, req *http.Request) {
+func (sd *SendData) handleDetails(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(w, "invalid_http_method")
 		return
 	}
 
-	json, encodeErr := json.Marshal(pd.Data)
+	json, encodeErr := json.Marshal(sd)
 	check(encodeErr)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -137,7 +140,7 @@ func S3Upload(data *bytes.Buffer) {
 	})
 	check(uploadErr)
 
-	fmt.Printf("file uploaded to S3", result)
+	fmt.Println("file uploaded to S3", result)
 }
 
 func FindBestImage(data []byte) ([]byte, *PostDetails, error) {

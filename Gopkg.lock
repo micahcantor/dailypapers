@@ -20,15 +20,15 @@
   version = "v1.4.2"
 
 [[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
+  version = "v1.8.0"
+
+[[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   revision = "c2b33e84"
-
-[[projects]]
-  name = "github.com/lib/pq"
-  packages = [".","oid","scram"]
-  revision = "8ae9eeaa02388a26cd5586023a0c4166c021a83d"
-  version = "v1.7.0"
 
 [[projects]]
   branch = "master"
@@ -43,14 +43,26 @@
   version = "v0.8.1"
 
 [[projects]]
+  name = "go.mongodb.org/mongo-driver"
+  packages = ["bson","bson/bsoncodec","bson/bsonoptions","bson/bsonrw","bson/bsontype","bson/primitive","x/bsonx/bsoncore"]
+  revision = "4ce2db174a8ec022f504b9bc0e768e284e44708f"
+  version = "v1.3.4"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/image"
   packages = ["bmp"]
   revision = "c13761719519258ff9c1a8b224f63d6e29b63d27"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/mgo.v2"
+  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
+  revision = "a6b53ec6cb22a3699387a57a161566f9402ee85b"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "836119e4aabb911c5c203be95b368f635c602d293f41086e86bdf037044d74c0"
+  inputs-digest = "cf4b10828c3e39ad813f005ac1135dfca2107786b6341ed90cd30790a8e779ac"
   solver-name = "gps-cdcl"
   solver-version = 1

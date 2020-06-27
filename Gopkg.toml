@@ -33,3 +33,7 @@
   root-package = "rcw"
   go-version = "1.14.4"
   install = [ "./..." ]
+
+[[constraint]]
+  name = "go.mongodb.org/mongo-driver"
+  version = "1.3.4"
