@@ -198,6 +198,10 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			} else {
 				for x := 0; x < newWidth; x++ {
 					reduce()
+					if x == 0 {
+						runtime.GC()
+						PrintMemUsage()
+					}
 					if x % 10 == 0 {
 						runtime.GC()
 						PrintMemUsage()
@@ -216,6 +220,10 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			} else {
 				for y := 0; y < newHeight; y++ {
 					reduce()
+					if x == 0 {
+						runtime.GC()
+						PrintMemUsage()
+					}
 					if y % 10 == 0 {
 						runtime.GC()
 						PrintMemUsage()
