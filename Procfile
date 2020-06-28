@@ -1,1 +1,1 @@
-web: rcw
+web: cmd/web

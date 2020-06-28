@@ -32,7 +32,7 @@
 [metadata.heroku]
   root-package = "rcw"
   go-version = "1.14.4"
-  install = [ "./..." ]
+  install = [ "./cmd/..." ]
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"

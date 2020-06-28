@@ -7,12 +7,16 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"net/http"
 	"strings"
+	"encoding/json"
 	
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/esimov/caire"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
 )
 
 type Posts struct {
