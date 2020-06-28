@@ -17,6 +17,7 @@ import (
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
+	"github.com/pkg/profile"
 )
 
 type Posts struct {
@@ -49,6 +50,7 @@ func main() {
 }
 
 func daily() {
+	defer profile.Start(profile.MemProfile).Stop()
 	subData := GetSubData() // stores all of the data for r/EarthPorn/top
 	imgData, details, searchErr := FindBestImage(subData)
 	fmt.Println("Got image data")
@@ -149,7 +151,6 @@ func GetSubData() []byte {
 }
 
 func resize(in io.Reader, out io.Writer) {
-	//defer profile.Start(profile.MemProfile).Stop()
 	p := &caire.Processor {
 		NewWidth:  1920,
 		NewHeight: 1080,
