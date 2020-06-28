@@ -37,6 +37,7 @@ type Processor struct {
 	Square         bool
 	Debug          bool
 	Scale          bool
+	IsGIF		   bool
 	FaceDetect     bool
 	FaceAngle      float64
 	Classifier     string
@@ -85,7 +86,9 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		c.ComputeSeams(img, p)
 		seams := c.FindLowestEnergySeams()
 		img = c.RemoveSeam(img, seams, p.Debug)
-		//imgs = append(imgs, img)
+		if (p.IsGIF) {
+			imgs = append(imgs, img)
+		}
 	}
 	enlarge := func() {
 		width, height := img.Bounds().Max.X, img.Bounds().Max.Y
@@ -162,7 +165,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			if p.NewWidth > img.Bounds().Max.X || p.NewHeight > img.Bounds().Max.Y {
 				return nil, errors.New("scale option can not be used on image enlargement")
 			}
-			// Preserve the aspect ratio on horizontal or vertical axes.	
+			// Preserve the aspect ratio on horizontal or vertical axes.
 			if p.NewWidth > p.NewHeight {
 				newWidth = 0
 				newImg = resize.Resize(uint(p.NewWidth), 0, img, resize.Lanczos3)

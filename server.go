@@ -1,20 +1,11 @@
 package main
 
 import (
-	"runtime/debug"
+	//"runtime/debug"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/esimov/caire"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"gopkg.in/mgo.v2"
-	
+	"fmt"	
 	"io"
 	"io/ioutil"
 	//"log"
@@ -22,6 +13,14 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/pkg/profile"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/esimov/caire"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/mgo.v2"
 )
 
 // cd server && go run server.go
@@ -59,11 +58,14 @@ type ImageDetails struct {
 }
 
 func main() {
-	daily()
-	port := getPort()
-	sd := getData()
-	http.HandleFunc("/details", sd.handleDetails)
-	http.ListenAndServe(port, nil) 
+	if len(os.Args) >= 2 && os.Args[1] == "update" {
+		daily()
+	} else {
+		port := getPort()
+		sd := getData()
+		http.HandleFunc("/details", sd.handleDetails)
+		http.ListenAndServe(port, nil)
+	}
 }
 
 func daily() {
@@ -79,7 +81,7 @@ func daily() {
 	resizedBuffer := new(bytes.Buffer)
 
 	resize(imgReader, resizedBuffer) // resizes image, stores it in resized buffer
-	debug.FreeOSMemory()
+	//debug.FreeOSMemory()
 	fmt.Println("Resized image")
 	S3Upload(resizedBuffer)          // uploads to s3
 }
@@ -156,7 +158,7 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 		height := post.Data.Preview.Images[0].Source.Height
 		asp_ratio := float64(width) / float64(height)
 
-		if isOC && asp_ratio > 1.6 { // find first OC post with acceptable aspect ratio
+		if isOC && asp_ratio > 1.32 { // find first OC post with acceptable aspect ratio
 			fmt.Println(asp_ratio)
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
@@ -194,7 +196,8 @@ func GetSubData() []byte {
 }
 
 func resize(in io.Reader, out io.Writer) {
-	p := &caire.Processor{
+	defer profile.Start(profile.MemProfile).Stop()
+	p := &caire.Processor {
 		NewWidth:  1920,
 		NewHeight: 1080,
 		Scale: true,
