@@ -11,8 +11,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
-	"fmt"
 
 	"github.com/nfnt/resize"
 	"github.com/pkg/errors"
@@ -198,14 +196,6 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			} else {
 				for x := 0; x < newWidth; x++ {
 					reduce()
-					if x == 0 {
-						runtime.GC()
-						PrintMemUsage()
-					}
-					if x % 10 == 0 {
-						runtime.GC()
-						PrintMemUsage()
-					}
 				}
 			}
 		}
@@ -220,14 +210,6 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			} else {
 				for y := 0; y < newHeight; y++ {
 					reduce()
-					if x == 0 {
-						runtime.GC()
-						PrintMemUsage()
-					}
-					if y % 10 == 0 {
-						runtime.GC()
-						PrintMemUsage()
-					}
 				}
 			}
 			img = c.RotateImage270(img)
@@ -345,18 +327,4 @@ func encodeGIF(imgs []image.Image, path string) error {
 	}
 	defer f.Close()
 	return gif.EncodeAll(f, g)
-}
-
-func PrintMemUsage() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
-	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
-	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
-	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
 }
