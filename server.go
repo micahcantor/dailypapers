@@ -14,7 +14,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/profile"
+	//"github.com/pkg/profile"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -158,7 +158,7 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 		height := post.Data.Preview.Images[0].Source.Height
 		asp_ratio := float64(width) / float64(height)
 
-		if isOC && asp_ratio > 1.32 { // find first OC post with acceptable aspect ratio
+		if isOC && asp_ratio > 1.5 { // find first OC post with acceptable aspect ratio
 			fmt.Println(asp_ratio)
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
@@ -196,7 +196,7 @@ func GetSubData() []byte {
 }
 
 func resize(in io.Reader, out io.Writer) {
-	defer profile.Start(profile.MemProfile).Stop()
+	//defer profile.Start(profile.MemProfile).Stop()
 	p := &caire.Processor {
 		NewWidth:  1920,
 		NewHeight: 1080,
