@@ -7,13 +7,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	//mime/multipart"
 	"net/http"
 	"strings"
 	"encoding/json"
 	
-	"github.com/aws/aws-sdk-go/aws"
+	/* "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager" */
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
@@ -60,14 +61,14 @@ func daily() {
 	resizedBuffer := new(bytes.Buffer)
 
 	resize(imgReader, resizedBuffer) // resizes image, stores it in resized buffer
-	S3Upload(resizedBuffer)          // uploads to s3
+	imageURL := imgurUpload(resizedBuffer)
 
-	insertData(details)
+	insertData(details, imageURL)
 }
 
-func insertData(details *PostDetails) {
+func insertData(details *PostDetails, imageURL string) {
 	c := getCollection()
-	err := c.Insert(bson.M{"Author": details.Data.Author, "Link": details.Data.Permalink})
+	err := c.Insert(bson.M{"Author": details.Data.Author, "Link": details.Data.Permalink, "ImageURL": imageURL})
 	check(err)
 	fmt.Println("inserted table")
 }
@@ -79,6 +80,33 @@ func getCollection() *mgo.Collection {
 	return c
 }
 
+func imgurUpload(data *bytes.Buffer) string {
+	url := "https://api.imgur.com/3/image"
+	method := "POST"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, data)
+	check(err)
+
+	req.Header.Add("Authorization", "Client-ID 6d76ba00db84cc6")
+	req.Header.Set("Content-Type", "image/jpg")
+
+	res, err := client.Do(req)
+	check(err)
+	defer res.Body.Close()
+
+	type Result struct {
+		Data struct {
+			Link string
+		}
+	}
+	var r Result
+
+	err = json.NewDecoder(res.Body).Decode(&r)
+	check(err)
+	return r.Data.Link
+}
+/* 
 func S3Upload(data *bytes.Buffer) {
 
 	// The session the S3 Uploader will use
@@ -97,7 +125,7 @@ func S3Upload(data *bytes.Buffer) {
 	check(uploadErr)
 
 	fmt.Println("file uploaded to S3", result)
-}
+} */
 
 func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 	var posts Posts
