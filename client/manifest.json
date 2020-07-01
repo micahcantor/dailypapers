@@ -1,0 +1,18 @@
+{
+    "name": "Dailypapers",
+    "version": "1.0",
+    "manifest_version": 2,
+    "description": "Changes your wallpaper to a top picture from Reddit every day",
+    "browser_action": {
+        "default_popup": "popup.html"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon16.png",
+        "128": "icons/icon128.png"
+    },
+    "chrome_url_overrides": {
+        "newtab": "newTab.html"
+    },
+    "permissions": ["storage"]
+}
