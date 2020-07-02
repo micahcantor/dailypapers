@@ -7,14 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	//mime/multipart"
 	"net/http"
 	"strings"
 	"encoding/json"
-	
-	/* "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager" */
+
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
@@ -47,7 +43,7 @@ type ImageDetails struct {
 }
 
 func main() {
-	lambda.Start(daily)	
+	lambda.Start(daily)
 }
 
 func daily() {
@@ -107,26 +103,6 @@ func imgurUpload(data *bytes.Buffer) string {
 	fmt.Println("image uploaded at " + r.Data.Link)
 	return r.Data.Link
 }
-/* 
-func S3Upload(data *bytes.Buffer) {
-
-	// The session the S3 Uploader will use
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-2")}))
-
-	// Create an uploader with the session and default options
-	uploader := s3manager.NewUploader(sess)
-	// Upload the file to S3.
-	result, uploadErr := uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String("reddit-chrome-wallpapers"),
-		Key:         aws.String("daily-image.jpg"),
-		ACL:         aws.String("public-read"),
-		ContentType: aws.String("image/jpeg"),
-		Body:        data,
-	})
-	check(uploadErr)
-
-	fmt.Println("file uploaded to S3", result)
-} */
 
 func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 	var posts Posts
@@ -182,7 +158,7 @@ func resize(in io.Reader, out io.Writer) {
 	p := &caire.Processor {
 		NewWidth:  1920,
 		NewHeight: 1080,
-		Scale: true,
+		Scale: 	   true,
 	}
 
 	err := p.Process(in, out)
