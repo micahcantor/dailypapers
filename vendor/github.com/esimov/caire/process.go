@@ -1,6 +1,7 @@
 package caire
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/color/palette"
@@ -37,7 +38,7 @@ type Processor struct {
 	Square         bool
 	Debug          bool
 	Scale          bool
-	IsGIF		   bool
+	IsGIF          bool
 	FaceDetect     bool
 	FaceAngle      float64
 	Classifier     string
@@ -55,30 +56,30 @@ func Resize(s SeamCarver, img *image.NRGBA) (image.Image, error) {
 func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 	var c = NewCarver(img.Bounds().Dx(), img.Bounds().Dy())
 	var (
-		newImg    image.Image
-		newWidth  int
-		newHeight int
-		pw, ph    int
+		newImg       image.Image
+		widthChange  int
+		heightChange int
+		pw, ph       int
 	)
 	imgs = []image.Image{}
 
 	if p.NewWidth > c.Width {
-		newWidth = p.NewWidth - (p.NewWidth - (p.NewWidth - c.Width))
+		widthChange = p.NewWidth - (p.NewWidth - (p.NewWidth - c.Width))
 	} else {
-		newWidth = c.Width - (c.Width - (c.Width - p.NewWidth))
+		widthChange = c.Width - (c.Width - (c.Width - p.NewWidth))
 	}
 
 	if p.NewHeight > c.Height {
-		newHeight = p.NewHeight - (p.NewHeight - (p.NewHeight - c.Height))
+		heightChange = p.NewHeight - (p.NewHeight - (p.NewHeight - c.Height))
 	} else {
-		newHeight = c.Height - (c.Height - (c.Height - p.NewHeight))
+		heightChange = c.Height - (c.Height - (c.Height - p.NewHeight))
 	}
 
 	if p.NewWidth == 0 {
-		newWidth = p.NewWidth
+		widthChange = p.NewWidth
 	}
 	if p.NewHeight == 0 {
-		newHeight = p.NewHeight
+		heightChange = p.NewHeight
 	}
 	reduce := func() {
 		width, height := img.Bounds().Max.X, img.Bounds().Max.Y
@@ -132,7 +133,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			pw = c.Width - int(float64(c.Width)-(float64(p.NewWidth)/100*float64(c.Width)))
 			ph = c.Height - int(float64(c.Height)-(float64(p.NewHeight)/100*float64(c.Height)))
 
-			if pw > newWidth || ph > newHeight {
+			if pw > widthChange || ph > heightChange {
 				return nil, errors.New("the generated image size should be less than the original image size")
 			}
 		}
@@ -146,7 +147,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			reduce()
 		}
 		img = c.RotateImage270(img)
-	} else if newWidth > 0 || newHeight > 0 {
+	} else if widthChange > 0 || heightChange > 0 {
 		// Use this option to rescale the image proportionally prior resizing.
 		// First the image is scaled down preserving the image aspect ratio,
 		// then the seam carving algorithm is applied only to the remaining pixels.
@@ -165,21 +166,13 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			}
 			// Preserve the aspect ratio on horizontal or vertical axes.
 			if p.NewWidth > p.NewHeight {
-				newWidth = 0
+				widthChange = 0
 				newImg = resize.Resize(uint(p.NewWidth), 0, img, resize.Lanczos3)
-				if p.NewHeight <= newImg.Bounds().Dy() {
-					newHeight = newImg.Bounds().Dy() - p.NewHeight
-				} else {
-					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")
-				}
+				heightChange = newImg.Bounds().Dy() - p.NewHeight
 			} else {
-				newHeight = 0
+				heightChange = 0
 				newImg = resize.Resize(0, uint(p.NewHeight), img, resize.Lanczos3)
-				if p.NewWidth <= newImg.Bounds().Dx() {
-					newWidth = newImg.Bounds().Dx() - p.NewWidth
-				} else {
-					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")
-				}
+				widthChange = newImg.Bounds().Dx() - p.NewWidth		
 			}
 			dst := image.NewNRGBA(newImg.Bounds())
 			draw.Draw(dst, newImg.Bounds(), newImg, image.ZP, draw.Src)
@@ -188,27 +181,27 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 
 		// Check if the new width does not match with the rescaled image width.
 		// We only need to run the carver function if the desired image width is less than the rescaled image width.
-		if newWidth > 0 && newWidth != img.Bounds().Max.X {
-			if p.NewWidth > c.Width {
-				for x := 0; x < newWidth; x++ {
+		if widthChange != 0 && widthChange != img.Bounds().Max.X {
+			if p.NewWidth > c.Width || widthChange < 0 {
+				for x := 0; x < absVal(widthChange); x++ {
 					enlarge()
 				}
 			} else {
-				for x := 0; x < newWidth; x++ {
+				for x := 0; x < widthChange; x++ {
 					reduce()
 				}
 			}
 		}
 		// Check if the new height does not match with the rescaled image height.
 		// We only need to run the carver function if the desired image height is less than the rescaled image height.
-		if newHeight > 0 && newHeight != img.Bounds().Max.Y {
+		if heightChange != 0 && heightChange != img.Bounds().Max.Y {
 			img = c.RotateImage90(img)
-			if p.NewHeight > c.Height {
-				for y := 0; y < newHeight; y++ {
+			if p.NewHeight > c.Height || heightChange < 0 {
+				for y := 0; y < absVal(heightChange); y++ {
 					enlarge()
 				}
 			} else {
-				for y := 0; y < newHeight; y++ {
+				for y := 0; y < heightChange; y++ {
 					reduce()
 				}
 			}
@@ -327,4 +320,11 @@ func encodeGIF(imgs []image.Image, path string) error {
 	}
 	defer f.Close()
 	return gif.EncodeAll(f, g)
+}
+
+func absVal(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
