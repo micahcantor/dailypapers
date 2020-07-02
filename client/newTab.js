@@ -1,9 +1,7 @@
 (async function pullDetails() {
-    console.log("waiting for heroku")
     const url = "https://reddit-chrome-wallpapers.herokuapp.com/details";
     const response = await fetch(url);
     const data = await response.json();
-    console.log("response received " + data.ImageURL)
     chrome.storage.sync.set(data);
 }())
 
