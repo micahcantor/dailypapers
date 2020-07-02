@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"encoding/json"
+	"os"
 
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
@@ -84,7 +85,7 @@ func imgurUpload(data *bytes.Buffer) string {
 	req, err := http.NewRequest(method, url, data)
 	check(err)
 
-	req.Header.Add("Authorization", "Client-ID 6d76ba00db84cc6")
+	req.Header.Add("Authorization", "Client-ID " + os.Getenv("IMGUR_ID"))
 	req.Header.Set("Content-Type", "image/jpg")
 
 	res, err := client.Do(req)
