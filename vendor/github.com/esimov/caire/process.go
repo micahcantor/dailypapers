@@ -176,19 +176,11 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			if p.NewWidth > p.NewHeight {
 				newWidth = 0
 				newImg = resize.Resize(uint(p.NewWidth), 0, img, resize.Lanczos3)
-				if p.NewHeight < newImg.Bounds().Dy() {
-					newHeight = newImg.Bounds().Dy() - p.NewHeight
-				} else {
-					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")
-				}
+				newHeight = newImg.Bounds().Dy() - p.NewHeight
 			} else {
 				newHeight = 0
 				newImg = resize.Resize(0, uint(p.NewHeight), img, resize.Lanczos3)
-				if p.NewWidth < newImg.Bounds().Dx() {
-					newWidth = newImg.Bounds().Dx() - p.NewWidth
-				} else {
-					return nil, errors.New("cannot rescale to this size preserving the image aspect ratio")
-				}
+				newWidth = newImg.Bounds().Dx() - p.NewWidth
 			}
 			dst := image.NewNRGBA(newImg.Bounds())
 			draw.Draw(dst, newImg.Bounds(), newImg, image.ZP, draw.Src)
@@ -197,9 +189,9 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 
 		// Check if the new width does not match with the rescaled image width.
 		// We only need to run the carver function if the desired image width is less than the rescaled image width.
-		if newWidth > 0 && newWidth != img.Bounds().Max.X {
-			if p.NewWidth > c.Width {
-				for x := 0; x < newWidth; x++ {
+		if newWidth != 0 && newWidth != img.Bounds().Max.X {
+			if p.NewWidth > c.Width || newWidth < 0 {
+				for x := 0; x < absVal(newWidth); x++ {
 					enlarge()
 				}
 			} else {
@@ -211,10 +203,10 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		}
 		// Check if the new height does not match with the rescaled image height.
 		// We only need to run the carver function if the desired image height is less than the rescaled image height.
-		if newHeight > 0 && newHeight != img.Bounds().Max.Y {
+		if newHeight != 0 && newHeight != img.Bounds().Max.Y {
 			img = c.RotateImage90(img)
-			if p.NewHeight > c.Height {
-				for y := 0; y < newHeight; y++ {
+			if p.NewHeight > c.Height || newHeight < 0 {
+				for y := 0; y < absVal(newHeight); y++ {
 					enlarge()
 				}
 			} else {
@@ -358,4 +350,11 @@ func writeGifToFile(path string) error {
 	}
 	defer f.Close()
 	return gif.EncodeAll(f, g)
+}
+
+func absVal(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
