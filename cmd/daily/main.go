@@ -47,7 +47,7 @@ type ImageDetails struct {
 }
 
 func main() {
-	lambda.Start(daily)
+	lambda.Start(daily)	
 }
 
 func daily() {
@@ -104,6 +104,7 @@ func imgurUpload(data *bytes.Buffer) string {
 
 	err = json.NewDecoder(res.Body).Decode(&r)
 	check(err)
+	fmt.Println("image uploaded at " + r.Data.Link)
 	return r.Data.Link
 }
 /* 
