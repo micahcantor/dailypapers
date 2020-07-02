@@ -1,6 +1,6 @@
 {
     "name": "Dailypapers",
-    "version": "1.0",
+    "version": "1.1",
     "manifest_version": 2,
     "description": "Changes your wallpaper to a top picture from Reddit every day",
     "browser_action": {
