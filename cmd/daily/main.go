@@ -2,20 +2,20 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"net/http"
-	"strings"
-	"encoding/json"
+	"net/url"
 	"os"
+	"strings"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type Posts struct {
@@ -85,7 +85,7 @@ func imgurUpload(data *bytes.Buffer) string {
 	req, err := http.NewRequest(method, url, data)
 	check(err)
 
-	req.Header.Add("Authorization", "Client-ID " + os.Getenv("IMGUR_ID"))
+	req.Header.Add("Authorization", "Client-ID "+os.Getenv("IMGUR_ID"))
 	req.Header.Set("Content-Type", "image/jpg")
 
 	res, err := client.Do(req)
@@ -118,7 +118,7 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 		isOC := strings.Contains(post.Data.Title, "[OC]") || strings.Contains(post.Data.Title, "(OC)")
 		good_asp_ratio := asp_ratio > 1.5 && asp_ratio < 1.9
 
-		if isOC && good_asp_ratio  { // find first OC post with acceptable aspect ratio
+		if isOC && good_asp_ratio { // find first OC post with acceptable aspect ratio
 			fmt.Println(asp_ratio)
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
@@ -142,7 +142,7 @@ func GetSubData() []byte {
 		Method: "GET",
 		URL:    reqUrl,
 		Header: map[string][]string{
-			"User-agent": {"macOS:https://github.com/micahcantor/reddit-chrome-wallpapers:0.1.0 (by /u/HydroxideOH-)"},
+			"User-agent": {"macOS:https://github.com/micahcantor/daily:0.2.0 (by /u/HydroxideOH-)"},
 		},
 	}
 
@@ -156,10 +156,10 @@ func GetSubData() []byte {
 }
 
 func resize(in io.Reader, out io.Writer) {
-	p := &caire.Processor {
+	p := &caire.Processor{
 		NewWidth:  1920,
 		NewHeight: 1080,
-		Scale: 	   true,
+		Scale:     true,
 	}
 
 	err := p.Process(in, out)
