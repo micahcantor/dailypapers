@@ -14,6 +14,7 @@ import (
 type SendData struct {
 	Author 	  string
 	Permalink string
+	ImageURL  string
 }
 
 func main() {
@@ -44,7 +45,7 @@ func getData() *SendData {
 	check(err)
 	err = c.Find(nil).Skip(dbSize - 1).One(&m)
 	check(err)
-	sd := SendData{Author: m["Author"].(string), Permalink: m["Link"].(string)}
+	sd := SendData{Author: m["Author"].(string), Permalink: m["Link"].(string), ImageURL: m["ImageURL"].(string)}
 	fmt.Println("got data from mongo", sd)
 	return &sd
 }
