@@ -71,9 +71,9 @@ func insertData(details *PostDetails, imageURL string) {
 }
 
 func getCollection() *mgo.Collection {
-	session, err := mgo.Dial("mongodb://micah:afF2cU9PtvJ8yb@ds261479.mlab.com:61479/heroku_v9g0gb74")
+	session, err := mgo.Dial(os.Getenv("MONGO_DB"))
 	check(err)
-	c := session.DB("heroku_v9g0gb74").C("details")
+	c := session.DB("heroku_9x11z8xg").C("details")
 	return c
 }
 
