@@ -51,7 +51,7 @@ func getData() *SendData {
 }
 
 func getCollection() *mgo.Collection {
-	session, err := mgo.Dial("mongodb://micah:afF2cU9PtvJ8yb@ds261479.mlab.com:61479/heroku_v9g0gb74")
+	session, err := mgo.Dial(os.Getenv("MONGOLAB_ORANGE_URI"))
 	check(err)
 	c := session.DB("heroku_v9g0gb74").C("details")
 	return c
