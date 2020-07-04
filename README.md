@@ -6,7 +6,7 @@ Change your Chrome wallpaper to a top landscape photo from Reddit every day.
 
 ## How it works
 
-Dailypapers uses a Go backend to pull the top landscape photo of the day from Reddit's r/EarthPorn. The program then resizes the photo to 1920x1080 using [caire](https://github.com/esimov/caire), a content aware image resizing library written in Go. The resized image is uploaded to Imgur, and it's metadata to a MongoDB database which is sent to the client whenever a user opens a new tab.
+Dailypapers uses a Go backend to pull the top landscape photo of the day from Reddit's r/EarthPorn. The program then resizes the photo to 1920x1080 using [caire](https://github.com/esimov/caire), a content aware image resizing library written in Go. The resized image is uploaded to Imgur, and its metadata to a MongoDB database which is sent to the client whenever a user opens a new tab.
 
 This repository contains the code for both the backend (in /cmd) and the extension (in /client). The daily routine which uploads the new image is hosted on AWS Lambda, while the http server is hosted on Heroku.
 
