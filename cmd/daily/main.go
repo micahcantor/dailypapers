@@ -2,23 +2,20 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
-	//mime/multipart"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
-	"encoding/json"
-	
-	/* "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager" */
+
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/esimov/caire"
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2"
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type Posts struct {
@@ -74,9 +71,9 @@ func insertData(details *PostDetails, imageURL string) {
 }
 
 func getCollection() *mgo.Collection {
-	session, err := mgo.Dial("mongodb://micah:afF2cU9PtvJ8yb@ds261479.mlab.com:61479/heroku_v9g0gb74")
+	session, err := mgo.Dial(os.Getenv("MONGO_DB"))
 	check(err)
-	c := session.DB("heroku_v9g0gb74").C("details")
+	c := session.DB("heroku_9x11z8xg").C("details")
 	return c
 }
 
@@ -88,7 +85,7 @@ func imgurUpload(data *bytes.Buffer) string {
 	req, err := http.NewRequest(method, url, data)
 	check(err)
 
-	req.Header.Add("Authorization", "Client-ID 6d76ba00db84cc6")
+	req.Header.Add("Authorization", "Client-ID "+os.Getenv("IMGUR_ID"))
 	req.Header.Set("Content-Type", "image/jpg")
 
 	res, err := client.Do(req)
@@ -104,28 +101,9 @@ func imgurUpload(data *bytes.Buffer) string {
 
 	err = json.NewDecoder(res.Body).Decode(&r)
 	check(err)
+	fmt.Println("image uploaded at " + r.Data.Link)
 	return r.Data.Link
 }
-/* 
-func S3Upload(data *bytes.Buffer) {
-
-	// The session the S3 Uploader will use
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-2")}))
-
-	// Create an uploader with the session and default options
-	uploader := s3manager.NewUploader(sess)
-	// Upload the file to S3.
-	result, uploadErr := uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String("reddit-chrome-wallpapers"),
-		Key:         aws.String("daily-image.jpg"),
-		ACL:         aws.String("public-read"),
-		ContentType: aws.String("image/jpeg"),
-		Body:        data,
-	})
-	check(uploadErr)
-
-	fmt.Println("file uploaded to S3", result)
-} */
 
 func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 	var posts Posts
@@ -140,7 +118,7 @@ func FindBestImage(data []byte) ([]byte, *PostDetails, error) {
 		isOC := strings.Contains(post.Data.Title, "[OC]") || strings.Contains(post.Data.Title, "(OC)")
 		good_asp_ratio := asp_ratio > 1.5 && asp_ratio < 1.9
 
-		if isOC && good_asp_ratio  { // find first OC post with acceptable aspect ratio
+		if isOC && good_asp_ratio { // find first OC post with acceptable aspect ratio
 			fmt.Println(asp_ratio)
 			res, getErr := http.Get(post.Data.Url)
 			check(getErr)
@@ -164,7 +142,7 @@ func GetSubData() []byte {
 		Method: "GET",
 		URL:    reqUrl,
 		Header: map[string][]string{
-			"User-agent": {"macOS:https://github.com/micahcantor/reddit-chrome-wallpapers:0.1.0 (by /u/HydroxideOH-)"},
+			"User-agent": {"macOS:https://github.com/micahcantor/daily:0.2.0 (by /u/HydroxideOH-)"},
 		},
 	}
 
@@ -178,10 +156,10 @@ func GetSubData() []byte {
 }
 
 func resize(in io.Reader, out io.Writer) {
-	p := &caire.Processor {
+	p := &caire.Processor{
 		NewWidth:  1920,
 		NewHeight: 1080,
-		Scale: true,
+		Scale:     true,
 	}
 
 	err := p.Process(in, out)

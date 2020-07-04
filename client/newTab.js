@@ -6,8 +6,12 @@
 }())
 
 chrome.storage.sync.get(null, (items) => {
-    if (items.Author != null && items.Permalink != null) {
-        document.getElementById("post_link").setAttribute("href", "https://reddit.com" + items.Permalink);
+    console.log(items)
+    if (items.Author != null && items.Permalink != null && items.ImageURL != null) {
+        const submittedBox = document.getElementById("post_link")
+        submittedBox.setAttribute("href", "https://reddit.com" + items.Permalink);
+        submittedBox.style.visibility = "visible";
         document.getElementById("author").innerText = "Submitted by u/" + items.Author;
+        document.getElementById("body").style.backgroundImage = "url(" + items.ImageURL + ")";
     }
 })

@@ -14,6 +14,7 @@ import (
 type SendData struct {
 	Author 	  string
 	Permalink string
+	ImageURL  string
 }
 
 func main() {
@@ -44,15 +45,15 @@ func getData() *SendData {
 	check(err)
 	err = c.Find(nil).Skip(dbSize - 1).One(&m)
 	check(err)
-	sd := SendData{Author: m["Author"].(string), Permalink: m["Link"].(string)}
+	sd := SendData{Author: m["Author"].(string), Permalink: m["Link"].(string), ImageURL: m["ImageURL"].(string)}
 	fmt.Println("got data from mongo", sd)
 	return &sd
 }
 
 func getCollection() *mgo.Collection {
-	session, err := mgo.Dial("mongodb://micah:afF2cU9PtvJ8yb@ds261479.mlab.com:61479/heroku_v9g0gb74")
+	session, err := mgo.Dial(os.Getenv("MONGODB_URI"))
 	check(err)
-	c := session.DB("heroku_v9g0gb74").C("details")
+	c := session.DB("heroku_9x11z8xg").C("details")
 	return c
 }
 
