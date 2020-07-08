@@ -19,18 +19,18 @@ type SendData struct {
 
 func main() {
 	port := getPort()
-	sd := getData()
-	http.HandleFunc("/details", sd.handleDetails)
+	http.HandleFunc("/details", handleDetails)
 	http.ListenAndServe(port, nil)
 }
 
-func (sd *SendData) handleDetails(w http.ResponseWriter, req *http.Request) {
+func handleDetails(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(w, "invalid_http_method")
 		return
 	}
 
+	sd := getData()
 	json, encodeErr := json.Marshal(sd)
 	check(encodeErr)
 	w.Header().Set("Content-Type", "application/json")
